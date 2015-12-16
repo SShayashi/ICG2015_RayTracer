@@ -82,9 +82,6 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const {
 }
 
 
-}
-
-
 void
 Trimesh::generateNormals()
 // Once you've loaded all the verts and faces, we can generate per
