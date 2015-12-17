@@ -67,18 +67,32 @@ bool TrimeshFace::intersectLocal( const ray& r, isect& i ) const {
 
    double t;		// Rayの媒介変数t
    /* tを求める計算を自分で書こう */
+	t = (normal*alpha - normal*p)/(normal*d);
 
    if (t < RAY_EPSILON)
       return false;	// tがRAY_EPSILONより小さい場合は平面と交差しない
 
 	Vec3d Q = r.at(t);	// 交点の位置ベクトル
-	   /* 交点が三角形の内部かを判定する部分を自分で書こう */
+	/* 交点が三角形の内部かを判定する部分を自分で書こう */
+	auto cross_alpha = (beta - alpha)^(Q - alpha);
+	auto cross_beta  =(gamma - beta)^(Q - beta);
+	auto cross_gamma = (alpha - gamma)^(Q - gamma);
 
-	   i.obj = this;
-	   i.t = t;
-	   i.N = normal;
+	auto inner_a =((cross_alpha*cross_beta)*(cross_alpha*cross_gamma));
+	auto inner_b =((cross_beta*cross_gamma)*(cross_beta*cross_alpha));
+	auto inner_g =((cross_gamma*cross_alpha)*(cross_gamma*cross_beta));
 
-	   return true;
+
+	/*向きが全部同じなら、内積は正になるはず*/
+	if( inner_a < 0  || inner_b < 0 || inner_g < 0 ){
+		return false;
+	}
+
+	i.obj = this;
+	i.t = t;
+	i.N = normal;
+
+	return true;
 }
 
 
