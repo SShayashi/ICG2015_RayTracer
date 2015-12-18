@@ -9,40 +9,51 @@ extern bool debugMode;
 
 // Apply the Phong model to this point on the surface of the object, returning
 // the color of that point.
-Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const
-{
-	// YOUR CODE HERE
+Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const {
+	Vec3d lum = ke(i)+prod(ka(i),scene->ambient());	  // 返り値
+	Vec3d v = -r.getDirection();	// 視線ベクトルはRayの方向ベクトルdと等しい
 
-	// For now, this method just returns the diffuse color of the object.
-	// This gives a single matte color for every distinct surface in the
-	// scene, and that's it.  Simple, but enough to get you started.
-	// (It's also inconsistent with the Phong model...)
+	for (vector<Light*>::const_iterator litr = scene->beginLights();
+		litr != scene->endLights(); litr++) {	// 全ての光源に関してループ
+		Light* pLight = *litr;		// このループで注目する光源をpLightとする
+		Vec3d ld = pLight->getDirection(r.at(i.t));
+		ld.normalize();
 
-	// Your mission is to fill in this method with the rest of the phong
-	// shading model, including the contributions of all the light sources.
-    // You will need to call both distanceAttenuation() and shadowAttenuation()
-    // somewhere in your code in order to compute shadows and light falloff.
-	if( debugMode )
-		std::cout << "Debugging the Phong code (or lack thereof...)" << std::endl;
+		Vec3d lc = pLight->getColor(r.at(i.t));	// pLightから出る光の量
+		Vec3d atten;		// 減衰率. 後のためにベクトル型にしておこう
+		atten = pLight->distanceAttenuation(r.at(i.t)) * Vec3d(1.0, 1.0, 1.0);
+		// diffuse color
+		Vec3d ldf;		// 光源から反射する拡散光の値
+		/* ldfの値を自分で計算しよう */
 
-	// When you're iterating through the lights,
-	// you'll want to use code that looks something
-	// like this:
-	//
-	// for ( vector<Light*>::const_iterator litr = scene->beginLights(); 
-	// 		litr != scene->endLights(); 
-	// 		++litr )
-	// {
-	// 		Light* pLight = *litr;
-	// 		.
-	// 		.
-	// 		.
-	// }
+		double n_l = (i.N*pLight->getDirection(r.at(i.t)));
+		if(n_l < 0.0 ){
+			n_l=0.0;
+		}
+		ldf = kd(i)*n_l;
+
+		// specular color
+		Vec3d lsp;		// 光源から反射する鏡面光の値
+		Vec3d ldj = pLight->getDirection(r.at(i.t));
+		Vec3d n =( (-1)*ldj*i.N) / (ldj.length()*i.N.length())*i.N;
+		Vec3d rj = ldj + 2*(n - ldj);
+		ldj.normalize();
+		n.normalize();
+		rj.normalize();
+		double v_r = ((-1)*r.getDirection()*rj);
+		if(v_r < 0.0 ){
+			v_r=0.0;
+		}
+		/* lspの値を自分で計算しよう */
+		lsp = ks(i)*pow(v_r,shininess(i));
 
 
-	return kd(i);
-
+		lum += prod(atten, prod(lc, ldf+lsp));
+	}
+	return lum;
 }
+
+
 
 
 TextureMap::TextureMap( string filename )
