@@ -45,36 +45,42 @@ Vec3d RayTracer::trace( double x, double y )
 
 // Do recursive ray tracing!  You'll want to insert a lot of code here
 // (or places called from here) to handle reflection, refraction, etc etc.
-Vec3d RayTracer::traceRay( const ray& r, 
-	const Vec3d& thresh, int depth )
-{
-	isect i;
+Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth ) {
+   isect i;							// 入射Rayと物体との交点情報
+   if ( scene->intersect(r, i)) {			// 入射Rayの交差判定
+      const Material& m=i.getMaterial();	// 交差した物体のパラメータ取得用
+      Vec3d ret = m.shade(scene, r, i);	// 返り値の初期値にシェーディングの値を入れる
 
-	if( scene->intersect( r, i ) ) {
-		// YOUR CODE HERE
+      if ( depth < traceUI->getDepth() ) {	// 再帰深度とスライダーの値を比較
+         Vec3d kr = m.kr(i);				// 反射の係数
+         Vec3d kt = m.kt(i);				// 透過の係数
+          Vec3d d = r.getDirection();
+         Vec3d norm = i.N;
 
-		// An intersection occured!  We've got work to do.  For now,
-		// this code gets the material for the surface that was intersected,
-		// and asks that material to provide a color for the ray.  
+         if (d * i.N > 0.0) {
+            norm = -norm;                          // 物体内からのRayの場合
+         }
+		         // reflection
+         Vec3d reflect(0.0, 0.0, 0.0);            // 光源から反射する鏡面光の値
+         Vec3d rd = /* 前回と同様に計算 */rd;
+         rd.normalize();
+         if (!(kr.iszero())) {                         // 反射係数が0かチェック
+            ray rr( r.at(i.t-RAY_EPSILON), rd, ray::REFLECTION );
+            reflect = traceRay(rr, thresh, depth+1);	// 深度を深めて再帰計算
+            ret += prod( kr, reflect );
+         }
 
-		// This is a great place to insert code for recursive ray tracing.
-		// Instead of just returning the result of shade(), add some
-		// more steps: add in the contributions from reflected and refracted
-		// rays.
-
-		const Material& m = i.getMaterial();
-
-		return m.shade(scene, r, i);
-
-	
-	} else {
-		// No intersection.  This ray travels to infinity, so we color
-		// it according to the background color, which in this (simple) case
-		// is just black.
-
-		return Vec3d( 0.0, 0.0, 0.0 );
-	}
+         // transmission
+         Vec3d transmit(0.0, 0.0, 0.0);		// 屈折するRayの返り値
+         /* transmitの値を自分で計算しよう. ついでに全反射の場合の処理もしよう */
+         ret += prod(kt, transmit);
+      }
+      return ret;
+   }
+   return Vec3d( 0.0, 0.0, 0.0 );			// 入射Rayが物体と交差しなかった場合は0
 }
+
+
 
 RayTracer::RayTracer()
 	: scene( 0 ), buffer( 0 ), buffer_width( 256 ), buffer_height( 256 ), m_bBufferReady( false )
