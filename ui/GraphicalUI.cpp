@@ -172,6 +172,13 @@ void GraphicalUI::cb_bspEnabledCheckButton(Fl_Widget* o, void* v)
 }
 
 
+void GraphicalUI::cb_antiAliasingCheckButton(Fl_Widget* o, void* v)
+{
+	GraphicalUI* pUI=(GraphicalUI*)(o->user_data());
+	pUI->m_antiAliasing_value = (((Fl_Check_Button*)o)->value() == 1);
+}
+
+
 void GraphicalUI::cb_render(Fl_Widget* o, void* v)
 {
 	char buffer[256];
@@ -352,6 +359,13 @@ GraphicalUI::GraphicalUI() {
 		m_bsp_enabledCheckButton->user_data((void*)(this));
 		m_bsp_enabledCheckButton->callback(cb_bspEnabledCheckButton);
 		m_bsp_enabledCheckButton->value(m_bsp_enabled_value);
+
+		//set up Anti-aliasing checkbox 
+        m_antiAliasingCheckButton= new Fl_Check_Button(0, 230, 180, 20, "Anti-aliasing Enabled");
+		m_antiAliasingCheckButton->user_data((void*)(this));
+		m_antiAliasingCheckButton->callback(cb_antiAliasingCheckButton);
+		m_antiAliasingCheckButton->value(m_antiAliasing_value);
+
 
 
 		// set up "render" button

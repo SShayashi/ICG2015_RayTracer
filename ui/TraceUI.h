@@ -27,7 +27,7 @@ public:
 		m_displayDebuggingInfo( false ),
 
 		m_bsp_enabled_value( false ), 
-
+		m_antiAliasing_value(false),
 		raytracer( 0 )
 
 	{ }
@@ -57,13 +57,12 @@ protected:
 	bool		m_displayDebuggingInfo;
 
 
-
 public:
 	bool		getBSPEnabled() const { return m_bsp_enabled_value; }
-
+	bool		getAntiAliasingEnabled() const {return m_antiAliasing_value;}
 protected:
 	bool		m_bsp_enabled_value;
-
+	bool		m_antiAliasing_value;
 
 };
 
