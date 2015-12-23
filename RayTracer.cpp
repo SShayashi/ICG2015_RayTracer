@@ -46,39 +46,65 @@ Vec3d RayTracer::trace( double x, double y )
 // Do recursive ray tracing!  You'll want to insert a lot of code here
 // (or places called from here) to handle reflection, refraction, etc etc.
 Vec3d RayTracer::traceRay( const ray& r, const Vec3d& thresh, int depth ) {
-   isect i;							// 入射Rayと物体との交点情報
-   if ( scene->intersect(r, i)) {			// 入射Rayの交差判定
-      const Material& m=i.getMaterial();	// 交差した物体のパラメータ取得用
-      Vec3d ret = m.shade(scene, r, i);	// 返り値の初期値にシェーディングの値を入れる
+	isect i;							// 入射Rayと物体との交点情報
+	if ( scene->intersect(r, i)) {			// 入射Rayの交差判定
+		const Material& m=i.getMaterial();	// 交差した物体のパラメータ取得用
+		Vec3d ret = m.shade(scene, r, i);	// 返り値の初期値にシェーディングの値を入れる
 
-      if ( depth < traceUI->getDepth() ) {	// 再帰深度とスライダーの値を比較
-         Vec3d kr = m.kr(i);				// 反射の係数
-         Vec3d kt = m.kt(i);				// 透過の係数
-          Vec3d d = r.getDirection();
-         Vec3d norm = i.N;
+		if ( depth < traceUI->getDepth() ) {	// 再帰深度とスライダーの値を比較
+			Vec3d kr = m.kr(i);				// 反射の係数
+			Vec3d kt = m.kt(i);				// 透過の係数
+			Vec3d d = r.getDirection();
+			d.normalize();
+			Vec3d norm = i.N;
+			double n1, n2;   //屈折率 n1 入射側, n2屈折側
+			if (d * i.N > 0.0) {
+			norm = -norm;                          // 物体内からのRayの場合
+			n1 = m.index(i);				
+			n2  = 1;
+		} else {
+			n1 = 1;
+			n2 = m.index(i);
+		}
+		double nm = n2/n1; 				//全反射条件用
+		// reflection
+		Vec3d reflect(0.0, 0.0, 0.0);            // 光源から反射する鏡面光の値
+		Vec3d dd = -(i.N*d)*i.N + d;//　屈折でも使うから保存しておく   d'
+		Vec3d rd = -d + 2*dd; /* 前回と同様に計算 (少し違うけど)*/;
+		rd.normalize();
+		if (!(kr.iszero())) {                         // 反射係数が0かチェック
+			ray rr( r.at(i.t-RAY_EPSILON),rd, ray::REFLECTION );
+			reflect = traceRay(rr, thresh, depth+1);	// 深度を深めて再帰計算
+			ret += prod( kr, reflect );
+		}
 
-         if (d * i.N > 0.0) {
-            norm = -norm;                          // 物体内からのRayの場合
-         }
-		         // reflection
-         Vec3d reflect(0.0, 0.0, 0.0);            // 光源から反射する鏡面光の値
-         Vec3d rd = /* 前回と同様に計算 */rd;
-         rd.normalize();
-         if (!(kr.iszero())) {                         // 反射係数が0かチェック
-            ray rr( r.at(i.t-RAY_EPSILON), rd, ray::REFLECTION );
-            reflect = traceRay(rr, thresh, depth+1);	// 深度を深めて再帰計算
-            ret += prod( kr, reflect );
-         }
-
-         // transmission
-         Vec3d transmit(0.0, 0.0, 0.0);		// 屈折するRayの返り値
-         /* transmitの値を自分で計算しよう. ついでに全反射の場合の処理もしよう */
-         ret += prod(kt, transmit);
-      }
-      return ret;
-   }
-   return Vec3d( 0.0, 0.0, 0.0 );			// 入射Rayが物体と交差しなかった場合は0
+		// transmission
+		Vec3d transmit(0.0, 0.0, 0.0);		// 屈折するRayの返り値
+		/* transmitの値を自分で計算しよう. ついでに全反射の場合の処理もしよう */
+		Vec3d td = -norm + dd/sqrt(nm*nm-dd.length2());  //屈折ベクトル
+		td.normalize();
+		/* transmitの値を自分で計算しよう. ついでに全反射の場合の処理もしよう */
+		if(!kt.iszero())
+		{
+			if(dd.length()>nm)  //ddの大きさはsin(Θin)と同じ
+		{
+			//全反射の場合は, 反射ベクトルを使う
+			ray rr( r.at(i.t-RAY_EPSILON), rd, ray::REFLECTION );
+			transmit = traceRay(rr, thresh, depth+1);
+			ret += prod(kt, transmit);
+		} else{
+			ray rr( r.at(i.t+RAY_EPSILON), td, ray::REFRACTION );// 透過の場合
+			transmit = traceRay(rr, thresh, depth+1);
+			ret += prod(kt, transmit);
+		}
+		}
+		//ret += prod(kt, transmit); //上でしてるからいらない
+		}
+		return ret;
+	}
+	return Vec3d( 0.0, 0.0, 0.0 );			// 入射Rayが物体と交差しなかった場合は0
 }
+
 
 
 

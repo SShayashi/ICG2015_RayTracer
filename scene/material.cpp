@@ -21,31 +21,17 @@ Vec3d Material::shade( Scene *scene, const ray& r, const isect& i ) const {
 
 		Vec3d lc = pLight->getColor(r.at(i.t));	// pLight‚©‚ço‚éŒõ‚Ì—Ê
 		Vec3d atten;		// Œ¸Š—¦. Œã‚Ì‚½‚ß‚ÉƒxƒNƒgƒ‹Œ^‚É‚µ‚Ä‚¨‚±‚¤
-		atten = pLight->distanceAttenuation(r.at(i.t)) * Vec3d(1.0, 1.0, 1.0);
+		atten = pLight->distanceAttenuation(r.at(i.t)) * pLight->shadowAttenuation(r.at(i.t));
 		// diffuse color
 		Vec3d ldf;		// ŒõŒ¹‚©‚ç”½ŽË‚·‚éŠgŽUŒõ‚Ì’l
 		/* ldf‚Ì’l‚ðŽ©•ª‚ÅŒvŽZ‚µ‚æ‚¤ */
-
-		double n_l = (i.N*pLight->getDirection(r.at(i.t)));
-		if(n_l < 0.0 ){
-			n_l=0.0;
-		}
-		ldf = kd(i)*n_l;
-
-		// specular color
+		ldf = kd(i)*max(0,i.N*ld);    //0‚©i.N*ld‚Ì‘å‚«‚¢•û ‚ð•Ô‚·
 		Vec3d lsp;		// ŒõŒ¹‚©‚ç”½ŽË‚·‚é‹¾–ÊŒõ‚Ì’l
-		Vec3d ldj = pLight->getDirection(r.at(i.t));
-		Vec3d n =( (-1)*ldj*i.N) / (ldj.length()*i.N.length())*i.N;
-		Vec3d rj = ldj + 2*(n - ldj);
-		ldj.normalize();
-		n.normalize();
-		rj.normalize();
-		double v_r = ((-1)*r.getDirection()*rj);
-		if(v_r < 0.0 ){
-			v_r=0.0;
-		}
-		/* lsp‚Ì’l‚ðŽ©•ª‚ÅŒvŽZ‚µ‚æ‚¤ */
-		lsp = ks(i)*pow(v_r,shininess(i));
+		Vec3d R = ld + 2*((i.N*ld)*i.N - ld);
+
+		Vec3d V = -r.getDirection();
+		double ns = shininess(i);
+		lsp = ks(i)*pow(max(0,R*V), ns);       //pow(a,b)  : a‚Ìbæ‚ð•Ô‚·
 
 
 		lum += prod(atten, prod(lc, ldf+lsp));
