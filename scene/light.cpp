@@ -15,7 +15,9 @@ double DirectionalLight::distanceAttenuation( const Vec3d& P ) const
 
 Vec3d DirectionalLight::shadowAttenuation( const Vec3d& P ) const
 {
-   Vec3d d = getDirection(P);	// 光源への方向ベクトルをとる
+    // YOUR CODE HERE:
+    // You should implement shadow-handling code here.
+	   Vec3d d = getDirection(P);	// 光源への方向ベクトルをとる
    d.normalize();
    ray r( P, d, ray::SHADOW);	// Pからdへ進む、影の判定用のRayを生成
    isect i;			// 交点情報を保存するためのオブジェクトを生成
@@ -24,7 +26,6 @@ Vec3d DirectionalLight::shadowAttenuation( const Vec3d& P ) const
       return Vec3d( 0.0, 0.0, 0.0 );	// 衝突するなら0を返す
    else
       return Vec3d( 1.0, 1.0, 1.0 );	// 衝突しなければ1を返す
-
 
 }
 
@@ -83,13 +84,16 @@ Vec3d PointLight::shadowAttenuation( const Vec3d& P ) const
    Vec3d dv = position-P;	// 光源の位置ベクトルと交点の位置ベクトルの差をとる
    double dist = dv.length();
    /* Rayの交差判定によって返り値を決めよう */
-if (getScene()->intersect( r, i )) // Rayがシーン上の何らかのオブジェクトと衝突するか判定
-{
-  Vec3d dv1 =  r.at(i.t) - P;  //衝突オブジェクトとの距離が, distよりも長い->光源の後ろで衝突するので遮られない
-  if(dv1.length() > dist)
-        return Vec3d( 1.0, 1.0, 1.0 );
-  else
-       return Vec3d( 0.0, 0.0, 0.0 );// 衝突するなら0を返す
-} else
-    return Vec3d( 1.0, 1.0, 1.0 );// 衝突しなければ1を返す
+	if (getScene()->intersect( r, i )) // Rayがシーン上の何らかのオブジェクトと衝突するか判定
+	{
+	  Vec3d dv1 =  r.at(i.t) - P;  //衝突オブジェクトとの距離が, distよりも長い->光源の後ろで衝突するので遮られない
+	  auto obj = i.obj;
+	  auto m = obj->getMaterial();
+	  if(dv1.length() > dist)
+		  return Vec3d( 1.0, 1.0, 1.0 );
+	  else
+		   return m.kt(i);// 衝突するなら0を返す
+	} else{
+		return Vec3d( 1.0, 1.0, 1.0 );// 衝突しなければ1を返す
+	}
 }
